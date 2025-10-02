@@ -14,9 +14,8 @@ type Status = 'idle' | 'converting' | 'success' | 'error';
 
 interface VideoDetails {
     title: string;
-    author: string;
-    thumbnailUrl?: string;
-    summary?: string;
+    thumbnail: string;
+    duration: string;
     audioDataUri: string;
 }
 
@@ -152,21 +151,16 @@ export function Converter() {
                     <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-accent bg-accent/10 p-4">
                         <h3 className="text-xl font-bold text-accent">Download Ready!</h3>
                         <div className="flex w-full items-start gap-4">
-                           {videoDetails.thumbnailUrl && <img src={videoDetails.thumbnailUrl} alt={videoDetails.title} className="h-20 w-20 rounded-md object-cover" />}
+                           {videoDetails.thumbnail && <img src={videoDetails.thumbnail} alt={videoDetails.title} className="h-20 w-20 rounded-md object-cover" />}
                            <div className="flex-1 text-left">
                             <p className="font-bold">{videoDetails.title}</p>
-                            <p className="text-sm text-muted-foreground">By {videoDetails.author}</p>
-                            {videoDetails.summary && (
-                                <p className="mt-2 text-sm text-foreground/80 italic">
-                                    {videoDetails.summary}
-                                </p>
-                            )}
+                            <p className="text-sm text-muted-foreground">Duration: {videoDetails.duration}</p>
                            </div>
                         </div>
                         <a href={videoDetails.audioDataUri} download={`${videoDetails.title}.mp3`}>
                             <Button className="h-12 w-full bg-accent text-base font-bold text-accent-foreground hover:bg-accent/90 sm:w-auto sm:px-10">
                                 <Download className="mr-2 h-5 w-5" />
-                                Download MP3 ({isHighQuality ? '320kbps' : '128kbps'})
+                                Download MP3
                             </Button>
                         </a>
                     </div>

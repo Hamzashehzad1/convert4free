@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A flow for converting YouTube videos to MP3 format.
+ * @fileOverview A flow for converting YouTube videos to MP3 format using ytdl-core and ffmpeg.
  *
  * - convertYoutubeToMp3 - A function that handles the video to audio conversion.
  * - ConvertYoutubeToMp3Input - The input type for the convertYoutubeToMp3 function.
@@ -9,22 +9,24 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import ytdl from 'ytdl-core-discord';
+import ytdl from 'ytdl-core';
 import ffmpeg from 'fluent-ffmpeg';
+import ffmpegStatic from 'ffmpeg-static';
 import { PassThrough } from 'stream';
+
+ffmpeg.setFfmpegPath(ffmpegStatic as string);
 
 const ConvertYoutubeToMp3InputSchema = z.object({
   youtubeUrl: z.string().url().describe('The URL of the YouTube video.'),
-  quality: z.enum(['128', '320']).default('320').describe('The desired audio quality in kbps.'),
+  quality: z.enum(['320', '128']).default('320').describe('The desired audio quality in kbps.'),
 });
 export type ConvertYoutubeToMp3Input = z.infer<typeof ConvertYoutubeToMp3InputSchema>;
 
 const ConvertYoutubeToMp3OutputSchema = z.object({
   title: z.string().describe('The title of the video.'),
-  author: z.string().describe('The author of the video.'),
-  thumbnailUrl: z.string().url().optional().describe('The URL of the video thumbnail.'),
-  summary: z.string().optional().describe('A summary of the video content.'),
-  audioDataUri: z.string().describe('The converted audio file as a Base64 encoded data URI.'),
+  thumbnail: z.string().url().describe('The URL of the video thumbnail.'),
+  duration: z.string().describe('The duration of the video.'),
+  audioDataUri: z.string().describe('The Base64 encoded MP3 file as a data URI.'),
 });
 export type ConvertYoutubeToMp3Output = z.infer<typeof ConvertYoutubeToMp3OutputSchema>;
 
@@ -41,51 +43,46 @@ const convertYoutubeToMp3Flow = ai.defineFlow(
   async (input) => {
     try {
       const videoInfo = await ytdl.getInfo(input.youtubeUrl);
-      const { title, author, thumbnails } = videoInfo.videoDetails;
+      const audioFormat = ytdl.chooseFormat(videoInfo.formats, { quality: 'highestaudio' });
 
-      const audioStream = await ytdl(input.youtubeUrl, { 
-        quality: 'highestaudio',
-        filter: 'audioonly'
-      });
-
-      const passthrough = new PassThrough();
+      if (!audioFormat) {
+        throw new Error('No suitable audio format found.');
+      }
       
-      const chunks: Buffer[] = [];
-      passthrough.on('data', (chunk) => {
-        chunks.push(chunk);
-      });
-
+      const audioStream = ytdl(input.youtubeUrl, { format: audioFormat });
+      const chunks: any[] = [];
+      const passThrough = new PassThrough();
+      
       const conversionPromise = new Promise<string>((resolve, reject) => {
-        passthrough.on('end', () => {
-          const audioBuffer = Buffer.concat(chunks);
-          const audioDataUri = `data:audio/mp3;base64,${audioBuffer.toString('base64')}`;
-          resolve(audioDataUri);
-        });
+          const converter = ffmpeg(audioStream)
+            .audioBitrate(parseInt(input.quality))
+            .toFormat('mp3')
+            .on('error', (err) => reject(new Error(`FFmpeg error: ${err.message}`)))
+            .on('end', () => {
+                const buffer = Buffer.concat(chunks);
+                const dataUri = `data:audio/mp3;base64,${buffer.toString('base64')}`;
+                resolve(dataUri);
+            });
+            
+          converter.pipe(passThrough);
 
-        ffmpeg(audioStream)
-            .audioBitrate(parseInt(input.quality, 10))
-            .format('mp3')
-            .on('error', (err) => reject(new Error(`FFMPEG error: ${err.message}`)))
-            .pipe(passthrough, { end: true });
+          passThrough.on('data', (chunk) => {
+              chunks.push(chunk);
+          });
       });
 
       const audioDataUri = await conversionPromise;
 
-      const summaryResponse = await ai.generate({
-        prompt: `Create a very short, one-sentence summary for a video titled "${title}".`,
-      });
-      const summary = summaryResponse.text;
-
       return {
-        title,
-        author: author.name,
-        thumbnailUrl: thumbnails?.[thumbnails.length - 1]?.url,
-        summary,
-        audioDataUri,
+        title: videoInfo.videoDetails.title,
+        thumbnail: videoInfo.videoDetails.thumbnails[0].url,
+        duration: new Date(parseInt(videoInfo.videoDetails.lengthSeconds) * 1000).toISOString().substr(11, 8),
+        audioDataUri: audioDataUri,
       };
+
     } catch (error: any) {
       console.error('Error in convertYoutubeToMp3Flow:', error);
-      throw new Error(`Failed to convert video: ${error.message}`);
+      throw new Error(`Failed to process video: ${error.message}`);
     }
   }
 );
