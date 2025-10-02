@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Download, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-declare const YTMP3Converter: any;
+declare const YTMP3: any;
 
 type Status = 'idle' | 'converting' | 'success' | 'error';
 
@@ -31,7 +31,7 @@ export function Converter() {
   const converterRef = useRef<any>(null);
 
   useEffect(() => {
-    if (typeof YTMP3Converter !== 'undefined') {
+    if (typeof YTMP3 !== 'undefined' && YTMP3.YtMp3Converter) {
         converterRef.current = new YTMP3.YtMp3Converter();
         converterRef.current.on('progress', (data: any) => {
             if (data.status === 'success') {
