@@ -15,8 +15,9 @@ type Status = 'idle' | 'converting' | 'success' | 'error';
 interface VideoDetails {
     title: string;
     thumbnail: string;
-    duration: string;
-    audioDataUri: string;
+    duration: number;
+    dataUri: string;
+    size: string;
 }
 
 export function Converter() {
@@ -47,6 +48,12 @@ export function Converter() {
     setVideoDetails(null);
   }
 
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     reset();
@@ -64,13 +71,13 @@ export function Converter() {
     
     setStatus('converting');
     try {
-        const result = await convertYoutubeToMp3({ youtubeUrl: url, quality: isHighQuality ? '320' : '128' });
+        const result = await convertYoutubeToMp3({ youtubeUrl: url });
         
-        if (result.audioDataUri) {
+        if (result.dataUri) {
             setStatus('success');
             setVideoDetails(result);
         } else {
-            throw new Error('Conversion result did not contain audio data.');
+            throw new Error('Conversion result did not contain a download URL.');
         }
 
     } catch (err: any) {
@@ -122,10 +129,11 @@ export function Converter() {
                     id="quality-switch" 
                     checked={isHighQuality} 
                     onCheckedChange={setIsHighQuality}
-                    aria-label="Toggle high quality 320kbps"
+                    aria-label="Toggle high quality"
+                    disabled={true}
                 />
-                <Label htmlFor="quality-switch" className="flex items-center gap-2">
-                    {isHighQuality ? '320kbps' : '128kbps'} <span className="rounded-md bg-accent px-1.5 py-0.5 text-xs font-semibold text-accent-foreground">HD</span>
+                <Label htmlFor="quality-switch" className="flex items-center gap-2 text-muted-foreground">
+                    High Quality <span className="rounded-md bg-accent px-1.5 py-0.5 text-xs font-semibold text-accent-foreground">HD</span>
                 </Label>
               </div>
               <Button 
@@ -154,10 +162,10 @@ export function Converter() {
                            {videoDetails.thumbnail && <img src={videoDetails.thumbnail} alt={videoDetails.title} className="h-20 w-20 rounded-md object-cover" />}
                            <div className="flex-1 text-left">
                             <p className="font-bold">{videoDetails.title}</p>
-                            <p className="text-sm text-muted-foreground">Duration: {videoDetails.duration}</p>
+                            <p className="text-sm text-muted-foreground">Duration: {formatDuration(videoDetails.duration)} &bull; Size: {videoDetails.size}</p>
                            </div>
                         </div>
-                        <a href={videoDetails.audioDataUri} download={`${videoDetails.title}.mp3`}>
+                        <a href={videoDetails.dataUri} download={`${videoDetails.title}.mp3`}>
                             <Button className="h-12 w-full bg-accent text-base font-bold text-accent-foreground hover:bg-accent/90 sm:w-auto sm:px-10">
                                 <Download className="mr-2 h-5 w-5" />
                                 Download MP3
