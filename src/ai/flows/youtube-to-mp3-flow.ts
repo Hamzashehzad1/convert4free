@@ -10,8 +10,9 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import ytdl from 'ytdl-core';
-import ffmpeg from 'fluent-ffmpeg';
-import { PassThrough } from 'stream';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile } from '@ffmpeg/util';
+import { Readable } from 'stream';
 
 const ConvertYoutubeToMp3InputSchema = z.object({
   youtubeUrl: z.string().url().describe('The URL of the YouTube video to convert.'),
@@ -33,6 +34,15 @@ export async function convertYoutubeToMp3(input: ConvertYoutubeToMp3Input): Prom
   return convertYoutubeToMp3Flow(input);
 }
 
+// Helper to convert a readable stream to a Buffer
+async function streamToBuffer(stream: Readable): Promise<Buffer> {
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+        chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+}
+
 const convertYoutubeToMp3Flow = ai.defineFlow(
   {
     name: 'convertYoutubeToMp3Flow',
@@ -52,32 +62,27 @@ const convertYoutubeToMp3Flow = ai.defineFlow(
       }
       
       const audioStream = ytdl(input.youtubeUrl, { format: audioFormat });
-      const passthrough = new PassThrough();
+      const audioBuffer = await streamToBuffer(audioStream);
       
-      const chunks: Buffer[] = [];
-      passthrough.on('data', chunk => chunks.push(chunk));
+      const ffmpeg = new FFmpeg();
+      // This is a no-op but required to initialize the library.
+      await ffmpeg.load();
 
-      const conversionPromise = new Promise<Buffer>((resolve, reject) => {
-        passthrough.on('end', () => resolve(Buffer.concat(chunks)));
-        passthrough.on('error', reject);
+      const inputFileName = 'input.dat';
+      const outputFileName = 'output.mp3';
 
-        const ffmpegCommand = ffmpeg(audioStream)
-          .audioBitrate(input.highQuality ? 320 : 128)
-          .toFormat('mp3')
-          .on('error', (err) => {
-            reject(new Error(`FFMPEG error: ${err.message}`));
-          });
+      await ffmpeg.writeFile(inputFileName, await fetchFile(audioBuffer));
+      
+      await ffmpeg.exec(['-i', inputFileName, '-b:a', input.highQuality ? '320k' : '128k', outputFileName]);
 
-        ffmpegCommand.pipe(passthrough, { end: true });
-      });
-
-      const audioBuffer = await conversionPromise;
+      const outputData = await ffmpeg.readFile(outputFileName);
+      const outputBuffer = Buffer.from(outputData as Uint8Array);
 
       const thumbnails = videoInfo.videoDetails.thumbnails;
       const thumbnailUrl = thumbnails && thumbnails.length > 0 ? thumbnails[thumbnails.length - 1].url : undefined;
 
       return {
-        audioDataUri: `data:audio/mpeg;base64,${audioBuffer.toString('base64')}`,
+        audioDataUri: `data:audio/mpeg;base64,${outputBuffer.toString('base64')}`,
         videoDetails: {
           title: videoInfo.videoDetails.title,
           author: videoInfo.videoDetails.author.name,
