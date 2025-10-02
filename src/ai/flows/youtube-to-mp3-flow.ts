@@ -36,7 +36,7 @@ export async function convertYoutubeToMp3(input: ConvertYoutubeToMp3Input): Prom
 const convertYoutubeToMp3Flow = ai.defineFlow(
   {
     name: 'convertYoutubeToMp3Flow',
-    inputSchema: ConvertYoutubeToKebabCaseInputSchema,
+    inputSchema: ConvertYoutubeToMp3InputSchema,
     outputSchema: ConvertYoutubeToMp3OutputSchema,
   },
   async (input) => {
