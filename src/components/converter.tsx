@@ -158,11 +158,16 @@ export function Converter() {
                 {status === 'success' && downloadUrl && videoDetails && (
                     <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-accent bg-accent/10 p-4">
                         <h3 className="text-xl font-bold text-accent">Download Ready!</h3>
-                        <div className="flex items-center gap-4">
-                           {videoDetails.thumbnailUrl && <img src={videoDetails.thumbnailUrl} alt={videoDetails.title} className="h-16 w-16 rounded-md object-cover" />}
-                           <div className="text-left">
+                        <div className="flex w-full items-start gap-4">
+                           {videoDetails.thumbnailUrl && <img src={videoDetails.thumbnailUrl} alt={videoDetails.title} className="h-20 w-20 rounded-md object-cover" />}
+                           <div className="flex-1 text-left">
                             <p className="font-bold">{videoDetails.title}</p>
                             <p className="text-sm text-muted-foreground">By {videoDetails.author}</p>
+                            {videoDetails.summary && (
+                                <p className="mt-2 text-sm text-foreground/80 italic">
+                                    {videoDetails.summary}
+                                </p>
+                            )}
                            </div>
                         </div>
                         <a href={downloadUrl} download={`${videoDetails.title}.mp3`}>

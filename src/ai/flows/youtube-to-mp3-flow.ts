@@ -26,6 +26,7 @@ const ConvertYoutubeToMp3OutputSchema = z.object({
     title: z.string(),
     author: z.string(),
     thumbnailUrl: z.string().optional(),
+    summary: z.string().optional(),
   }),
 });
 export type ConvertYoutubeToMp3Output = z.infer<typeof ConvertYoutubeToMp3OutputSchema>;
@@ -43,6 +44,17 @@ async function streamToBuffer(stream: Readable): Promise<Buffer> {
         stream.on('end', () => resolve(Buffer.concat(chunks)));
     });
 }
+
+const summarizeVideoTitlePrompt = ai.definePrompt({
+    name: 'summarizeVideoTitlePrompt',
+    input: { schema: z.string() },
+    output: { schema: z.string() },
+    prompt: `Based on the following video title, provide a very short, one-sentence summary of what the video might be about.
+
+Video Title: {{{input}}}
+Summary:`,
+});
+
 
 const convertYoutubeToMp3Flow = ai.defineFlow(
   {
@@ -83,12 +95,16 @@ const convertYoutubeToMp3Flow = ai.defineFlow(
       const thumbnails = videoInfo.videoDetails.thumbnails;
       const thumbnailUrl = thumbnails && thumbnails.length > 0 ? thumbnails[thumbnails.length - 1].url : undefined;
 
+      const summaryResponse = await summarizeVideoTitlePrompt(videoInfo.videoDetails.title);
+      const summary = summaryResponse.output;
+
       return {
         audioDataUri: `data:audio/mpeg;base64,${outputBuffer.toString('base64')}`,
         videoDetails: {
           title: videoInfo.videoDetails.title,
           author: videoInfo.videoDetails.author.name,
           thumbnailUrl,
+          summary,
         }
       };
     } catch (error: any) {
