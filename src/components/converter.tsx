@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Download, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-declare const YTMP3: any;
+import { convertYoutubeToMp3 } from '@/ai/flows/youtube-to-mp3-flow';
 
 type Status = 'idle' | 'converting' | 'success' | 'error';
 
@@ -18,6 +17,7 @@ interface VideoDetails {
     author: string;
     thumbnailUrl?: string;
     summary?: string;
+    audioDataUri: string;
 }
 
 export function Converter() {
@@ -25,53 +25,8 @@ export function Converter() {
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
   const [isHighQuality, setIsHighQuality] = useState(true);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [videoDetails, setVideoDetails] = useState<VideoDetails | null>(null);
   const { toast } = useToast();
-  const converterRef = useRef<any>(null);
-
-  useEffect(() => {
-    const initializeConverter = () => {
-      if (typeof YTMP3 !== 'undefined' && YTMP3.YtMp3Converter) {
-        converterRef.current = new YTMP3.YtMp3Converter();
-        converterRef.current.on('progress', (data: any) => {
-            if (data.status === 'success') {
-                setStatus('success');
-                setDownloadUrl(data.download);
-                setVideoDetails({
-                    title: data.title,
-                    author: data.artist,
-                    thumbnailUrl: data.thumbnail,
-                    summary: `Duration: ${Math.floor(data.duration / 60)}:${('0' + Math.floor(data.duration % 60)).slice(-2)} minutes`
-                });
-            } else if (data.status === 'error') {
-                setStatus('error');
-                const message = data.error || 'An unexpected error occurred during conversion. Please try again.';
-                setError(message);
-                toast({
-                    title: "Conversion Failed",
-                    description: message,
-                    variant: "destructive",
-                });
-            }
-        });
-        return true;
-      }
-      return false;
-    };
-
-    if (initializeConverter()) {
-      return;
-    }
-
-    const intervalId = setInterval(() => {
-      if (initializeConverter()) {
-        clearInterval(intervalId);
-      }
-    }, 100);
-
-    return () => clearInterval(intervalId);
-  }, [toast]);
 
   const isButtonDisabled = status === 'converting' || url.trim() === '';
 
@@ -90,11 +45,7 @@ export function Converter() {
   const reset = () => {
     setStatus('idle');
     setError(null);
-    setDownloadUrl(null);
     setVideoDetails(null);
-    if(downloadUrl) {
-        URL.revokeObjectURL(downloadUrl);
-    }
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -112,21 +63,17 @@ export function Converter() {
       return;
     }
     
-    if (!converterRef.current) {
-        setStatus('error');
-        const message = 'Converter library not loaded. Please refresh the page.';
-        setError(message);
-        toast({
-            title: "Error",
-            description: message,
-            variant: "destructive",
-        });
-        return;
-    }
-
     setStatus('converting');
     try {
-        converterRef.current.convert(url, { quality: isHighQuality ? '320' : '128' });
+        const result = await convertYoutubeToMp3({ youtubeUrl: url, quality: isHighQuality ? '320' : '128' });
+        
+        if (result.audioDataUri) {
+            setStatus('success');
+            setVideoDetails(result);
+        } else {
+            throw new Error('Conversion result did not contain audio data.');
+        }
+
     } catch (err: any) {
         setStatus('error');
         const message = err.message || 'An unexpected error occurred during conversion. Please try again.';
@@ -138,14 +85,6 @@ export function Converter() {
         });
     }
   };
-  
-  useEffect(() => {
-    return () => {
-      if (downloadUrl) {
-        URL.revokeObjectURL(downloadUrl);
-      }
-    };
-  }, [downloadUrl]);
 
   return (
     <section className="container mx-auto flex flex-col items-center px-4 py-12 text-center sm:py-20">
@@ -209,7 +148,7 @@ export function Converter() {
                     <p className="text-sm text-muted-foreground">Fetching video details and processing audio.</p>
                   </div>
                 )}
-                {status === 'success' && downloadUrl && videoDetails && (
+                {status === 'success' && videoDetails && (
                     <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-accent bg-accent/10 p-4">
                         <h3 className="text-xl font-bold text-accent">Download Ready!</h3>
                         <div className="flex w-full items-start gap-4">
@@ -224,7 +163,7 @@ export function Converter() {
                             )}
                            </div>
                         </div>
-                        <a href={downloadUrl} download={`${videoDetails.title}.mp3`}>
+                        <a href={videoDetails.audioDataUri} download={`${videoDetails.title}.mp3`}>
                             <Button className="h-12 w-full bg-accent text-base font-bold text-accent-foreground hover:bg-accent/90 sm:w-auto sm:px-10">
                                 <Download className="mr-2 h-5 w-5" />
                                 Download MP3 ({isHighQuality ? '320kbps' : '128kbps'})
