@@ -31,7 +31,8 @@ export function Converter() {
   const converterRef = useRef<any>(null);
 
   useEffect(() => {
-    if (typeof YTMP3 !== 'undefined' && YTMP3.YtMp3Converter) {
+    const initializeConverter = () => {
+      if (typeof YTMP3 !== 'undefined' && YTMP3.YtMp3Converter) {
         converterRef.current = new YTMP3.YtMp3Converter();
         converterRef.current.on('progress', (data: any) => {
             if (data.status === 'success') {
@@ -54,8 +55,23 @@ export function Converter() {
                 });
             }
         });
+        return true;
+      }
+      return false;
+    };
+
+    if (initializeConverter()) {
+      return;
     }
-  }, []);
+
+    const intervalId = setInterval(() => {
+      if (initializeConverter()) {
+        clearInterval(intervalId);
+      }
+    }, 100);
+
+    return () => clearInterval(intervalId);
+  }, [toast]);
 
   const isButtonDisabled = status === 'converting' || url.trim() === '';
 
