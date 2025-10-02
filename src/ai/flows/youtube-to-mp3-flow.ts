@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A flow for converting YouTube videos to MP3 format using ytdl-core and ffmpeg.
+ * @fileOverview A flow for converting YouTube videos to MP3 format using play-dl and ffmpeg.
  *
  * - convertYoutubeToMp3 - A function that handles the video to audio conversion.
  * - ConvertYoutubeToMp3Input - The input type for the convertYoutubeToMp3 function.
@@ -9,12 +9,9 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import ytdl from 'ytdl-core';
+import { stream as playdlStream, video_basic_info } from 'play-dl';
 import ffmpeg from 'fluent-ffmpeg';
-import ffmpegStatic from 'ffmpeg-static';
 import { PassThrough } from 'stream';
-
-ffmpeg.setFfmpegPath(ffmpegStatic as string);
 
 const ConvertYoutubeToMp3InputSchema = z.object({
   youtubeUrl: z.string().url().describe('The URL of the YouTube video.'),
@@ -42,41 +39,38 @@ const convertYoutubeToMp3Flow = ai.defineFlow(
   },
   async (input) => {
     try {
-      const videoInfo = await ytdl.getInfo(input.youtubeUrl);
-      const audioFormat = ytdl.chooseFormat(videoInfo.formats, { quality: 'highestaudio' });
+      const videoInfo = await video_basic_info(input.youtubeUrl);
+      const stream = await playdlStream(input.youtubeUrl, {
+        quality: 2, // 0-lowest, 1-low, 2-high
+      });
 
-      if (!audioFormat) {
-        throw new Error('No suitable audio format found.');
-      }
-      
-      const audioStream = ytdl(input.youtubeUrl, { format: audioFormat });
       const chunks: any[] = [];
       const passThrough = new PassThrough();
-      
-      const conversionPromise = new Promise<string>((resolve, reject) => {
-          const converter = ffmpeg(audioStream)
-            .audioBitrate(parseInt(input.quality))
-            .toFormat('mp3')
-            .on('error', (err) => reject(new Error(`FFmpeg error: ${err.message}`)))
-            .on('end', () => {
-                const buffer = Buffer.concat(chunks);
-                const dataUri = `data:audio/mp3;base64,${buffer.toString('base64')}`;
-                resolve(dataUri);
-            });
-            
-          converter.pipe(passThrough);
 
-          passThrough.on('data', (chunk) => {
-              chunks.push(chunk);
+      const conversionPromise = new Promise<string>((resolve, reject) => {
+        const converter = ffmpeg(stream.stream)
+          .audioBitrate(parseInt(input.quality))
+          .toFormat('mp3')
+          .on('error', (err) => reject(new Error(`FFmpeg error: ${err.message}`)))
+          .on('end', () => {
+            const buffer = Buffer.concat(chunks);
+            const dataUri = `data:audio/mp3;base64,${buffer.toString('base64')}`;
+            resolve(dataUri);
           });
+
+        converter.pipe(passThrough);
+
+        passThrough.on('data', (chunk) => {
+          chunks.push(chunk);
+        });
       });
 
       const audioDataUri = await conversionPromise;
-
+      
       return {
-        title: videoInfo.videoDetails.title,
-        thumbnail: videoInfo.videoDetails.thumbnails[0].url,
-        duration: new Date(parseInt(videoInfo.videoDetails.lengthSeconds) * 1000).toISOString().substr(11, 8),
+        title: videoInfo.video_details.title || 'Untitled',
+        thumbnail: videoInfo.video_details.thumbnails[0].url,
+        duration: videoInfo.video_details.durationRaw,
         audioDataUri: audioDataUri,
       };
 
