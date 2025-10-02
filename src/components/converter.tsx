@@ -7,18 +7,20 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
-import { Download, Sparkles, AlertCircle } from 'lucide-react';
+import { Download, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { convertYoutubeToMp3, type ConvertYoutubeToMp3Output } from '@/ai/flows/youtube-to-mp3-flow';
 
 type Status = 'idle' | 'converting' | 'success' | 'error';
+type VideoDetails = ConvertYoutubeToMp3Output['videoDetails'];
 
 export function Converter() {
   const [url, setUrl] = useState('');
   const [status, setStatus] = useState<Status>('idle');
-  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isHighQuality, setIsHighQuality] = useState(true);
-  const downloadLinkRef = useRef<string | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [videoDetails, setVideoDetails] = useState<VideoDetails | null>(null);
   const { toast } = useToast();
 
   const isButtonDisabled = status === 'converting' || url.trim() === '';
@@ -37,29 +39,13 @@ export function Converter() {
   
   const reset = () => {
     setStatus('idle');
-    setProgress(0);
     setError(null);
-    if(downloadLinkRef.current) {
-        URL.revokeObjectURL(downloadLinkRef.current);
-        downloadLinkRef.current = null;
+    setDownloadUrl(null);
+    setVideoDetails(null);
+    if(downloadUrl) {
+        URL.revokeObjectURL(downloadUrl);
     }
   }
-
-  const simulateConversion = async () => {
-    return new Promise<void>((resolve) => {
-      let currentProgress = 0;
-      const interval = setInterval(() => {
-        currentProgress += Math.random() * 10 + 5;
-        if (currentProgress >= 100) {
-          setProgress(100);
-          clearInterval(interval);
-          resolve();
-        } else {
-          setProgress(currentProgress);
-        }
-      }, 300);
-    });
-  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -78,19 +64,22 @@ export function Converter() {
 
     setStatus('converting');
     try {
-        await simulateConversion();
-
-        const dummyBlob = new Blob([`Mock MP3 file for ${url}`], { type: 'audio/mpeg' });
-        const objectUrl = URL.createObjectURL(dummyBlob);
-        downloadLinkRef.current = objectUrl;
-
+      const result = await convertYoutubeToMp3({ youtubeUrl: url, highQuality: isHighQuality });
+      
+      if (result.audioDataUri) {
+        setDownloadUrl(result.audioDataUri);
+        setVideoDetails(result.videoDetails);
         setStatus('success');
-    } catch (err) {
+      } else {
+        throw new Error('Conversion failed, no audio data returned.');
+      }
+    } catch (err: any) {
         setStatus('error');
-        setError('An unexpected error occurred during conversion. Please try again.');
+        const message = err.message || 'An unexpected error occurred during conversion. Please try again.';
+        setError(message);
         toast({
             title: "Conversion Failed",
-            description: "An unexpected error occurred.",
+            description: message,
             variant: "destructive",
         });
     }
@@ -98,11 +87,11 @@ export function Converter() {
   
   useEffect(() => {
     return () => {
-      if (downloadLinkRef.current) {
-        URL.revokeObjectURL(downloadLinkRef.current);
+      if (downloadUrl) {
+        URL.revokeObjectURL(downloadUrl);
       }
     };
-  }, []);
+  }, [downloadUrl]);
 
   return (
     <section className="container mx-auto flex flex-col items-center px-4 py-12 text-center sm:py-20">
@@ -144,7 +133,7 @@ export function Converter() {
                     aria-label="Toggle high quality 320kbps"
                 />
                 <Label htmlFor="quality-switch" className="flex items-center gap-2">
-                    320kbps <span className="rounded-md bg-accent px-1.5 py-0.5 text-xs font-semibold text-accent-foreground">HD</span>
+                    {isHighQuality ? '320kbps' : '128kbps'} <span className="rounded-md bg-accent px-1.5 py-0.5 text-xs font-semibold text-accent-foreground">HD</span>
                 </Label>
               </div>
               <Button 
@@ -152,8 +141,8 @@ export function Converter() {
                 className="h-14 w-full flex-1 bg-gradient-to-r from-accent to-green-400 text-lg font-bold text-accent-foreground shadow-lg transition-transform hover:scale-105 active:scale-100 sm:w-auto"
                 disabled={isButtonDisabled}
               >
-                <Sparkles className="mr-2 h-5 w-5" />
-                Convert to MP3 Now (Free)
+                {status === 'converting' ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
+                {status === 'converting' ? 'Converting...' : 'Convert to MP3 Now (Free)'}
               </Button>
             </div>
           </form>
@@ -161,19 +150,25 @@ export function Converter() {
           {status !== 'idle' && (
             <div className="mt-6 w-full space-y-4 text-left">
                 {status === 'converting' && (
-                    <>
-                        <p className="text-center font-medium text-primary">Converting... Please wait.</p>
-                        <Progress value={progress} className="w-full" />
-                    </>
+                  <div className="text-center font-medium text-primary">
+                    <p>Please wait, this may take a moment...</p>
+                    <p className="text-sm text-muted-foreground">Fetching video details and processing audio.</p>
+                  </div>
                 )}
-                {status === 'success' && downloadLinkRef.current && (
+                {status === 'success' && downloadUrl && videoDetails && (
                     <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-accent bg-accent/10 p-4">
                         <h3 className="text-xl font-bold text-accent">Download Ready!</h3>
-                        <p className="text-center text-sm text-muted-foreground">Your high-quality MP3 is ready to be downloaded.</p>
-                        <a href={downloadLinkRef.current} download={`convert4free-${Date.now()}.mp3`}>
+                        <div className="flex items-center gap-4">
+                           {videoDetails.thumbnailUrl && <img src={videoDetails.thumbnailUrl} alt={videoDetails.title} className="h-16 w-16 rounded-md object-cover" />}
+                           <div className="text-left">
+                            <p className="font-bold">{videoDetails.title}</p>
+                            <p className="text-sm text-muted-foreground">By {videoDetails.author}</p>
+                           </div>
+                        </div>
+                        <a href={downloadUrl} download={`${videoDetails.title}.mp3`}>
                             <Button className="h-12 w-full bg-accent text-base font-bold text-accent-foreground hover:bg-accent/90 sm:w-auto sm:px-10">
                                 <Download className="mr-2 h-5 w-5" />
-                                Download MP3 (320kbps)
+                                Download MP3 ({isHighQuality ? '320kbps' : '128kbps'})
                             </Button>
                         </a>
                     </div>
