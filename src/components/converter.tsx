@@ -170,7 +170,7 @@ export function Converter() {
                     <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-accent bg-accent/10 p-4">
                         <h3 className="text-xl font-bold text-accent">Download Ready!</h3>
                         <p className="text-center text-sm text-muted-foreground">Your high-quality MP3 is ready to be downloaded.</p>
-                        <a href={downloadLinkRef.current} download={`yt2mp3-swiftconvert-${Date.now()}.mp3`}>
+                        <a href={downloadLinkRef.current} download={`convert4free-${Date.now()}.mp3`}>
                             <Button className="h-12 w-full bg-accent text-base font-bold text-accent-foreground hover:bg-accent/90 sm:w-auto sm:px-10">
                                 <Download className="mr-2 h-5 w-5" />
                                 Download MP3 (320kbps)

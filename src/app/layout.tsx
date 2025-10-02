@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
-const title = 'Free YouTube to MP3 Converter Online | Fast, High-Quality 320kbps Audio Download';
+const title = 'Convert4Free | Free YouTube to MP3 Converter Online | Fast, High-Quality 320kbps Audio Download';
 const description = 'Download music from YouTube to MP3 instantly. Our free converter youtube mp3 tool supports long videos and provides guaranteed 320kbps HD quality. Simple, fast, and secure. Convert any YouTube video to MP3 now!';
 
 export const metadata: Metadata = {
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
         url: 'https://yourdomain.com/og-image.png', // placeholder
         width: 1200,
         height: 630,
-        alt: 'YT2MP3 SwiftConvert - Free YouTube to MP3 Converter',
+        alt: 'Convert4Free - Free YouTube to MP3 Converter',
       },
     ],
   },

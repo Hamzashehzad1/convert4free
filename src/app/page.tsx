@@ -12,7 +12,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <Waves className="h-8 w-8 text-primary" />
           <h1 className="text-2xl font-bold tracking-tighter">
-            YT2MP3 SwiftConvert
+            Convert4Free
           </h1>
         </div>
       </header>
