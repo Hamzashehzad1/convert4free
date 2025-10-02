@@ -37,10 +37,11 @@ export async function convertYoutubeToMp3(input: ConvertYoutubeToMp3Input): Prom
 // Helper to convert a readable stream to a Buffer
 async function streamToBuffer(stream: Readable): Promise<Buffer> {
     const chunks: Buffer[] = [];
-    for await (const chunk of stream) {
-        chunks.push(chunk);
-    }
-    return Buffer.concat(chunks);
+    return new Promise((resolve, reject) => {
+        stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+        stream.on('error', (err) => reject(err));
+        stream.on('end', () => resolve(Buffer.concat(chunks)));
+    });
 }
 
 const convertYoutubeToMp3Flow = ai.defineFlow(
@@ -73,7 +74,8 @@ const convertYoutubeToMp3Flow = ai.defineFlow(
 
       await ffmpeg.writeFile(inputFileName, await fetchFile(audioBuffer));
       
-      await ffmpeg.exec(['-i', inputFileName, '-b:a', input.highQuality ? '320k' : '128k', outputFileName]);
+      const a_bitrate = input.highQuality ? '320k' : '128k';
+      await ffmpeg.exec(['-i', inputFileName, '-b:a', a_bitrate, outputFileName]);
 
       const outputData = await ffmpeg.readFile(outputFileName);
       const outputBuffer = Buffer.from(outputData as Uint8Array);
