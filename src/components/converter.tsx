@@ -83,7 +83,7 @@ export function Converter() {
                 clearInterval(intervalRef.current);
             }
             setStatus('error');
-            setError('This is a demo. The video cannot be downloaded.');
+            setError('The video cannot be downloaded.');
         }
     }, 100);
   };
