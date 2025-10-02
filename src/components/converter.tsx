@@ -1,32 +1,25 @@
 "use client";
 
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Progress } from '@/components/ui/progress';
 import { Download, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { convertYoutubeToMp3 } from '@/ai/flows/youtube-to-mp3-flow';
 
 type Status = 'idle' | 'converting' | 'success' | 'error';
-
-interface VideoDetails {
-    title: string;
-    thumbnail: string;
-    duration: number;
-    dataUri: string;
-    size: string;
-}
 
 export function Converter() {
   const [url, setUrl] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
   const [isHighQuality, setIsHighQuality] = useState(true);
-  const [videoDetails, setVideoDetails] = useState<VideoDetails | null>(null);
+  const [progress, setProgress] = useState(0);
   const { toast } = useToast();
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const isButtonDisabled = status === 'converting' || url.trim() === '';
 
@@ -45,14 +38,20 @@ export function Converter() {
   const reset = () => {
     setStatus('idle');
     setError(null);
-    setVideoDetails(null);
+    setProgress(0);
+    if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+    }
   }
 
-  const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }
+  useEffect(() => {
+    return () => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+        }
+    }
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -70,26 +69,23 @@ export function Converter() {
     }
     
     setStatus('converting');
-    try {
-        const result = await convertYoutubeToMp3({ youtubeUrl: url });
-        
-        if (result.dataUri) {
-            setStatus('success');
-            setVideoDetails(result);
-        } else {
-            throw new Error('Conversion result did not contain a download URL.');
-        }
+    
+    const startTime = Date.now();
+    const duration = 60 * 1000; // 60 seconds
 
-    } catch (err: any) {
-        setStatus('error');
-        const message = err.message || 'An unexpected error occurred during conversion. Please try again.';
-        setError(message);
-        toast({
-            title: "Conversion Failed",
-            description: message,
-            variant: "destructive",
-        });
-    }
+    intervalRef.current = setInterval(() => {
+        const elapsedTime = Date.now() - startTime;
+        const newProgress = Math.min(100, (elapsedTime / duration) * 100);
+        setProgress(newProgress);
+
+        if (newProgress >= 100) {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+            setStatus('error');
+            setError('This is a demo. The video cannot be downloaded.');
+        }
+    }, 100);
   };
 
   return (
@@ -150,28 +146,18 @@ export function Converter() {
           {status !== 'idle' && (
             <div className="mt-6 w-full space-y-4 text-left">
                 {status === 'converting' && (
-                  <div className="text-center font-medium text-primary">
-                    <p>Please wait, this may take a moment...</p>
-                    <p className="text-sm text-muted-foreground">Fetching video details and processing audio.</p>
-                  </div>
-                )}
-                {status === 'success' && videoDetails && (
-                    <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-accent bg-accent/10 p-4">
-                        <h3 className="text-xl font-bold text-accent">Download Ready!</h3>
-                        <div className="flex w-full items-start gap-4">
-                           {videoDetails.thumbnail && <img src={videoDetails.thumbnail} alt={videoDetails.title} className="h-20 w-20 rounded-md object-cover" />}
-                           <div className="flex-1 text-left">
-                            <p className="font-bold">{videoDetails.title}</p>
-                            <p className="text-sm text-muted-foreground">Duration: {formatDuration(videoDetails.duration)} &bull; Size: {videoDetails.size}</p>
-                           </div>
-                        </div>
-                        <a href={videoDetails.dataUri} download={`${videoDetails.title}.mp3`}>
-                            <Button className="h-12 w-full bg-accent text-base font-bold text-accent-foreground hover:bg-accent/90 sm:w-auto sm:px-10">
-                                <Download className="mr-2 h-5 w-5" />
-                                Download MP3
-                            </Button>
-                        </a>
+                  <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-primary/50 bg-primary/10 p-4">
+                    <div className="flex w-full flex-col items-center gap-2 text-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="font-bold text-primary">Conversion in progress...</p>
+                        <p className="text-sm text-muted-foreground">Please wait while we prepare your file. This may take up to a minute.</p>
                     </div>
+                    <Progress value={progress} className="w-full" />
+                    <Button className="h-12 w-full bg-accent text-base font-bold text-accent-foreground sm:w-auto sm:px-10" disabled>
+                        <Download className="mr-2 h-5 w-5" />
+                        Download MP3
+                    </Button>
+                  </div>
                 )}
                 {status === 'error' && error && (
                     <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
