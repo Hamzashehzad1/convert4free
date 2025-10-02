@@ -6,13 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Progress } from '@/components/ui/progress';
 import { Download, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { convertYoutubeToMp3, type ConvertYoutubeToMp3Output } from '@/ai/flows/youtube-to-mp3-flow';
+
+declare const YTMP3Converter: any;
 
 type Status = 'idle' | 'converting' | 'success' | 'error';
-type VideoDetails = ConvertYoutubeToMp3Output['videoDetails'];
+
+interface VideoDetails {
+    title: string;
+    author: string;
+    thumbnailUrl?: string;
+    summary?: string;
+}
 
 export function Converter() {
   const [url, setUrl] = useState('');
@@ -22,6 +28,34 @@ export function Converter() {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [videoDetails, setVideoDetails] = useState<VideoDetails | null>(null);
   const { toast } = useToast();
+  const converterRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (typeof YTMP3Converter !== 'undefined') {
+        converterRef.current = new YTMP3.YtMp3Converter();
+        converterRef.current.on('progress', (data: any) => {
+            if (data.status === 'success') {
+                setStatus('success');
+                setDownloadUrl(data.download);
+                setVideoDetails({
+                    title: data.title,
+                    author: data.artist,
+                    thumbnailUrl: data.thumbnail,
+                    summary: `Duration: ${Math.floor(data.duration / 60)}:${('0' + Math.floor(data.duration % 60)).slice(-2)} minutes`
+                });
+            } else if (data.status === 'error') {
+                setStatus('error');
+                const message = data.error || 'An unexpected error occurred during conversion. Please try again.';
+                setError(message);
+                toast({
+                    title: "Conversion Failed",
+                    description: message,
+                    variant: "destructive",
+                });
+            }
+        });
+    }
+  }, []);
 
   const isButtonDisabled = status === 'converting' || url.trim() === '';
 
@@ -61,18 +95,22 @@ export function Converter() {
       });
       return;
     }
+    
+    if (!converterRef.current) {
+        setStatus('error');
+        const message = 'Converter library not loaded. Please refresh the page.';
+        setError(message);
+        toast({
+            title: "Error",
+            description: message,
+            variant: "destructive",
+        });
+        return;
+    }
 
     setStatus('converting');
     try {
-      const result = await convertYoutubeToMp3({ youtubeUrl: url, highQuality: isHighQuality });
-      
-      if (result.audioDataUri) {
-        setDownloadUrl(result.audioDataUri);
-        setVideoDetails(result.videoDetails);
-        setStatus('success');
-      } else {
-        throw new Error('Conversion failed, no audio data returned.');
-      }
+        converterRef.current.convert(url, { quality: isHighQuality ? '320' : '128' });
     } catch (err: any) {
         setStatus('error');
         const message = err.message || 'An unexpected error occurred during conversion. Please try again.';
