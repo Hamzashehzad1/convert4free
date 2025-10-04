@@ -4,6 +4,7 @@ import { Features } from '@/components/features';
 import { HowTo } from '@/components/how-to';
 import { Footer } from '@/components/footer';
 import { Waves } from 'lucide-react';
+import { BulkCta } from '@/components/bulk-cta';
 
 export default function Home() {
   return (
@@ -18,6 +19,7 @@ export default function Home() {
       </header>
       <main className="flex-1">
         <Converter />
+        <BulkCta />
         <HowTo />
         <Features />
         <Faq />
