@@ -6,10 +6,10 @@ export function Footer() {
       <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 text-center text-sm text-muted-foreground md:flex-row">
         <p>&copy; {new Date().getFullYear()} Convert4Free. All Rights Reserved.</p>
         <div className="flex items-center gap-4">
-          <Link href="#" className="hover:text-foreground">
+          <Link href="/privacy-policy" className="hover:text-foreground">
             Privacy Policy
           </Link>
-          <Link href="#" className="hover:text-foreground">
+          <Link href="/terms-of-service" className="hover:text-foreground">
             Terms of Service
           </Link>
         </div>

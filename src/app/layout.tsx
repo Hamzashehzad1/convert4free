@@ -2,14 +2,14 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
-const title = 'Convert4Free | Free YouTube to MP3 Converter Online | Fast, High-Quality 320kbps Audio Download';
-const description = 'Download music from YouTube to MP3 instantly. Our free converter youtube mp3 tool supports long videos and provides guaranteed 320kbps HD quality. Simple, fast, and secure. Convert any YouTube video to MP3 now!';
+const title = 'Free YouTube to MP3 Converter - Convert4Free | Fast & High-Quality';
+const description = 'Easily convert your favorite YouTube videos into high-quality MP3 audio files. Our free and fast converter makes it simple to download YouTube audio for offline listening.';
 
 export const metadata: Metadata = {
   title: title,
   description: description,
   keywords: [
-    'youtube a mp3', 'youtube to mp3 converter online', 'youtube video converter converter mp3', 'free converter youtube mp3', 'youtube to mp3 conconventer online', 'youtube to mp3 320kbps converter', 'youtube videos to mp3', 'youtube downloader mp3 download', 'converter video youtube a mp3', 'download to mp3 youtube', 'youtube a mp3 320kbps', 'youtube to mp3 long video converter', 'youtube to mp3 online comconver', 'convert from youtube to mp3 free', 'mp3 downloader from youtube', 'youtube to mp3 converter yt1', 'youtube to mp3 hd', 'youtube to mp3 youtube to mp3 youtube to mp3', 'youtube y to mp3', 'download music from youtube to mp3'
+    'youtube to mp3', 'youtube converter', 'free youtube to mp3', 'mp3 converter', 'download youtube mp3', 'youtube audio downloader', 'convert youtube video'
   ],
   robots: 'index, follow',
   openGraph: {

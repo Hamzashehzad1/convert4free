@@ -91,10 +91,10 @@ export function Converter() {
   return (
     <section className="container mx-auto flex flex-col items-center px-4 py-12 text-center sm:py-20">
       <h1 className="text-4xl font-extrabold tracking-tighter sm:text-5xl md:text-6xl">
-        The Fastest Free <span className="text-primary">YouTube to MP3</span> Converter Online
+        High-Quality <span className="text-primary">YouTube to MP3</span> Converter
       </h1>
-      <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-        Instantly download music from youtube to mp3. Our <b className="text-foreground">free converter youtube mp3</b> is fast, secure, and supports HD audio. No registration required.
+      <p className="mx-auto mt-4 max-w-3xl text-lg text-muted-foreground">
+        Effortlessly convert your favorite YouTube videos into premium 320kbps MP3 audio files. Our free and fast converter makes it easy to download and listen offline.
       </p>
 
       <Card className="mx-auto mt-8 w-full max-w-2xl border-primary/20 bg-card/80 shadow-lg shadow-primary/10 transition-shadow hover:shadow-primary/20">
@@ -105,7 +105,7 @@ export function Converter() {
               <Input
                 id="youtube-url"
                 type="text"
-                placeholder="Paste your YouTube video link here... (Supports all resolutions)"
+                placeholder="Paste your YouTube video link here..."
                 value={url}
                 onChange={(e) => {
                     setUrl(e.target.value);
@@ -129,7 +129,7 @@ export function Converter() {
                     disabled={true}
                 />
                 <Label htmlFor="quality-switch" className="flex items-center gap-2 text-muted-foreground">
-                    High Quality <span className="rounded-md bg-accent px-1.5 py-0.5 text-xs font-semibold text-accent-foreground">HD</span>
+                    High Quality <span className="rounded-md bg-accent px-1.5 py-0.5 text-xs font-semibold text-accent-foreground">320kbps</span>
                 </Label>
               </div>
               <Button 
@@ -138,7 +138,7 @@ export function Converter() {
                 disabled={isButtonDisabled}
               >
                 {status === 'converting' ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
-                {status === 'converting' ? 'Converting...' : 'Convert to MP3 Now (Free)'}
+                {status === 'converting' ? 'Converting...' : 'Convert to MP3'}
               </Button>
             </div>
           </form>

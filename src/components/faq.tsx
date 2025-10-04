@@ -8,15 +8,27 @@ import {
 const faqItems = [
   {
     q: 'Is it safe to use this YouTube to MP3 converter?',
-    a: 'Absolutely. We prioritize your security. Our website is secured with SSL/TLS encryption, and we do not store any of your data or download history. The entire process is anonymous and safe.',
+    a: 'Absolutely. We prioritize your security. Our website is secured with an SSL certificate, which encrypts the data between you and our servers. We never ask for personal information, and we don’t store any data about the videos you convert.',
   },
   {
-    q: 'Does your converter work for long videos?',
-    a: 'Yes, it does. Our <b>youtube to mp3 long video converter</b> is specifically designed to handle long videos like podcasts, DJ sets, and full albums without any issues or time limits. We ensure a stable and reliable conversion every time.',
+    q: 'What is the audio quality of the converted MP3 files?',
+    a: 'Our converter extracts the audio in the highest possible quality from the YouTube video. We always aim for a 320kbps bitrate, which is considered high-definition audio, ensuring you get a rich and clear listening experience.',
   },
   {
-    q: 'What is the maximum audio quality I can get?',
-    a: 'We always provide the highest quality available from the source video, up to <b>320kbps</b>. Our <b>youtube to mp3 converter 320kbps</b> ensures you get a rich, high-definition audio file for the best listening experience.',
+    q: 'Does this converter work on mobile devices?',
+    a: 'Yes! Our website is fully responsive and designed to work seamlessly on any device, including smartphones and tablets. You can convert and download YouTube videos to MP3 directly from your mobile browser without needing to install any app.',
+  },
+  {
+    q: 'Are there any limits on the number of conversions?',
+    a: 'There are absolutely no limits. You can convert as many YouTube videos as you like, completely free of charge. We believe in providing an accessible service for everyone.',
+  },
+  {
+    q: 'Can I convert long videos, like podcasts or DJ sets?',
+    a: 'Yes, our service is capable of handling long videos without any issues. Whether it’s a one-hour podcast or a multi-hour live set, our converter can process it efficiently. Please be aware that longer videos will naturally take more time to convert.',
+  },
+  {
+    q: 'Do I need to create an account or install any software?',
+    a: 'No, registration or software installation is required. Our tool is entirely web-based. All you need is your web browser and a link to the YouTube video you want to convert. It’s that simple.',
   },
 ];
 
@@ -31,7 +43,7 @@ export function Faq() {
           {faqItems.map((item, index) => (
             <AccordionItem value={`item-${index + 1}`} key={index}>
               <AccordionTrigger className="text-left text-lg">{item.q}</AccordionTrigger>
-              <AccordionContent className="text-muted-foreground">
+              <AccordionContent className="text-base text-muted-foreground">
                 <p dangerouslySetInnerHTML={{ __html: item.a }} />
               </AccordionContent>
             </AccordionItem>

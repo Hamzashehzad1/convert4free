@@ -1,21 +1,21 @@
 import { Link, Sparkles, Download } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const steps = [
   {
     icon: <Link className="h-8 w-8 text-primary" />,
-    title: '1. Paste Your Link',
-    description: 'Find your desired YouTube video and copy its URL. Paste it into our input box to begin.',
+    title: '1. Paste the Video URL',
+    description: 'Navigate to YouTube, copy the URL of the video you want, and paste it into the input field on our site.',
   },
   {
     icon: <Sparkles className="h-8 w-8 text-primary" />,
-    title: '2. Start Converting',
-    description: 'Click the "Convert to MP3" button. Our service will process the video at lightning speed.',
+    title: '2. Click "Convert"',
+    description: 'Hit the convert button and our tool will immediately begin processing your video to extract the audio stream.',
   },
   {
     icon: <Download className="h-8 w-8 text-primary" />,
     title: '3. Download Your MP3',
-    description: 'Once finished, a download button will appear. Click it to save your high-quality 320kbps MP3 file.',
+    description: 'Once the conversion is complete, your download will be ready. Click the button to save the MP3 file to your device.',
   },
 ];
 
@@ -25,22 +25,22 @@ export function HowTo() {
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            How to Convert YouTube Video to MP3 in 3 Simple Steps
+            Get Your Audio in Three Simple Steps
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Our <b className="text-foreground">free converter youtube mp3</b> makes it incredibly easy to download audio. Just follow these steps.
+            Our process is designed to be as simple and intuitive as possible. Follow these steps to get your MP3 file in under a minute.
           </p>
         </div>
         <div className="mt-12 grid gap-8 md:grid-cols-3">
           {steps.map((step) => (
-            <Card key={step.title} className="bg-card/50 text-center">
+            <Card key={step.title} className="bg-card/50 text-center transition-all hover:shadow-lg hover:-translate-y-1">
               <CardHeader className="items-center">
                 <div className="rounded-full bg-primary/10 p-4">
                   {step.icon}
                 </div>
+                <CardTitle>{step.title}</CardTitle>
               </CardHeader>
               <CardContent>
-                <h3 className="text-xl font-semibold">{step.title}</h3>
                 <p className="mt-2 text-muted-foreground">{step.description}</p>
               </CardContent>
             </Card>
